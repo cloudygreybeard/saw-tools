@@ -42,7 +42,7 @@ Usage:
     Finds and deletes previously created symlinked kubeconfig files in "${DOWNLOAD_DIR}"
     Note: this is heinously kludged in order to work around Windows' use of file copies in
     place of symlinks: we match against a tag between name and file extension (regex:
-    "\.ln-[a-z0-9]\{5\}", followed by fileext ".kubeconfig").
+    "\.aro-[a-z0-9]\{5\}", followed by fileext ".kubeconfig").
     This isn't pretty.
 
 
