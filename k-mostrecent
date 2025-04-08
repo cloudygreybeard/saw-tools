@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ -n "${DEBUG:-}" ]] && set -x
+
+SCRIPT_NAME="$(basename "$(realpath "$0")")"
+SCRIPT_VERSION='v0.0.2'
+SCRIPT_AUTHOR='cloudygreybeard'
+SCRIPT_SPDX_LICENSE_IDENTIFIER='Apache-2.0'
+
+KUBECONFIG_MARKER="aro-$(tr -dc a-z0-9 </dev/urandom | head -c 5 || true)"  # Windows appears not to like symlinks: they just end up as copied files. We tag our links with a marker for dealing with later. #yay-kludge
+KUBECONFIG_MARKER_REGEX='aro-[a-z0-9]\{5\}'
+KUBECONFIG_FILEEXT='kubeconfig'
+DOWNLOAD_DIR="${HOME}/Work Folders/Downloads"
+KUBECONFIG_MOSTRECENT="$(find "${DOWNLOAD_DIR}" -maxdepth 1 -mindepth 1 -type f -regextype sed ! -regex ".*\.${KUBECONFIG_MARKER_REGEX}\.${KUBECONFIG_FILEEXT}" -regex ".*\.${KUBECONFIG_FILEEXT}" -printf "%T@ %p\n" | sort -n | cut -d\  -f2- | tail -n1)"
+
+[[ -n "${KUBECONFIG_MOSTRECENT}" ]] || { echo "Could not find kubeconfig in ${DOWNLOAD_DIR}. Aborting." >&2; exit 1; }
+
+LINK_NAME=
+OPT_REALLY=
+
+print_help() {
+  cat >&2 <<EOF
+
+Name: ${SCRIPT_NAME}
+Version: ${SCRIPT_VERSION}
+Author: ${SCRIPT_AUTHOR}
+SPDX-License-Identifier: ${SCRIPT_SPDX_LICENSE_IDENTIFIER}
+
+
+Usage:
+
+  k-mostrecent [NAME]
+
+    Finds most recent .kubeconfig file in "${DOWNLOAD_DIR}", then
+      - with NAME, creates a symlink to the kubeconfig file at NAME and prints its path; or
+      - without NAME, prints the path to the kubeconfig file.
+
+
+  k-mostrecent --purge [--yes-really]
+
+    Finds and deletes previously created symlinked kubeconfig files in "${DOWNLOAD_DIR}"
+    Note: this is heinously kludged in order to work around Windows' use of file copies in
+    place of symlinks: we match against a tag between name and file extension (regex:
+    "\.ln-[a-z0-9]\{5\}", followed by fileext ".kubeconfig").
+    This isn't pretty.
+
+
+  k-mostrecent --print-wrapper
+
+    Prints a function which may be used as a wrapper from .bash_profile or similar.
+    This function exports KUBECONFIG from the result of \`command k-mostrecent [NAME]\`
+
+EOF
+  exit ${1:-}
+}
+
+purge() {
+  RM_ARGS=( "--verbose" )
+  [[ -z "${OPT_REALLY}" ]] && RM_ARGS+=( "--interactive=always" )
+  find "${DOWNLOAD_DIR}" -maxdepth 1 -mindepth 1 -type f -regextype sed -regex ".*\.${KUBECONFIG_MARKER_REGEX}\.${KUBECONFIG_FILEEXT}" -exec rm "${RM_ARGS[@]}" '{}' \; >&2
+  exit ${1:-}
+}
+
+print_wrapper() {
+  cat >&2 <<'EOF'
+k-mostrecent() {
+  if new_kubeconfig="$(command k-mostrecent "$@")"; then
+    export KUBECONFIG="${new_kubeconfig}"
+    echo "${KUBECONFIG}"
+  fi
+  unset new_kubeconfig
+}
+EOF
+  exit ${1:-}
+}
+
+while [[ ${1+\*} ]]; do   # while $1 is defined (and allows for null values etc)
+  case "$1" in
+    --help          ) print_help 2;;
+    --yes-really    ) OPT_REALLY=1;;
+    --purge         ) purge 42;;
+    --print-wrapper ) print_wrapper 42;;
+    *               ) LINK_NAME="${1:-}";;
+  esac
+  shift
+done
+
+if [[ -n "${LINK_NAME:-}" ]]; then
+  KUBECONFIG_TARGET="${DOWNLOAD_DIR}/${LINK_NAME}.${KUBECONFIG_MARKER}.${KUBECONFIG_FILEEXT}"
+  ln -s "${KUBECONFIG_MOSTRECENT}" "${KUBECONFIG_TARGET}"
+else
+  KUBECONFIG_TARGET="${KUBECONFIG_MOSTRECENT}"
+fi
+
+if [[ -e "${KUBECONFIG_TARGET}" ]]; then
+  echo "export KUBECONFIG=\"${KUBECONFIG_TARGET}\""
+  export KUBECONFIG="${KUBECONFIG_TARGET}"
+else
+  echo "Could not create ${KUBECONFIG_TARGET}. Aborting." >&2
+  exit 1
+fi
