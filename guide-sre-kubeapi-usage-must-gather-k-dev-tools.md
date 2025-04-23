@@ -133,3 +133,15 @@ rm -rf must-gather.local.*
 - [kubectl-dev_tool GitHub](https://github.com/openshift/cluster-debug-tools)
 - [Must-gather documentation](https://docs.openshift.com/container-platform/latest/support/gathering-cluster-data.html)
 - ["What is overloading my API?", from RedHatQuickCourses RH1 Lab 16 Module 4](https://github.com/RedHatQuickCourses/rh1-lab16-must-gather/blob/main/content/modules/ROOT/pages/module-04.adoc)
+
+---
+```yaml
+title: "Analyzing Kubernetes API Usage with `oc adm must-gather` and `oc dev_tool audit`"
+authors: [{"name":"cloudygreybeard","role":"SRE"}]
+draft: false
+creationTimestamp: 2025-04-23
+modificationTimestamp: 2025-04-23
+tags: ["Kubernetes","OpenShift","etcd","KubeAPI","Perf","Forensics","Troubleshooting","Tools","Diagnostics"]
+spdxIdentifiers: ["Apache-2.0"]
+```
+---
