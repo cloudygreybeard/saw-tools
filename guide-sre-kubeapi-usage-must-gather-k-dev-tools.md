@@ -28,7 +28,7 @@ oc adm must-gather -- /usr/bin/gather_audit_logs
 This will produce a folder similar to:
 
 ```
-must-gather.local.*/audit_logs/kube-apiserver/
+must-gather.local.*/quay-io-openshift-release-dev-ocp-v4-0*/audit_logs/kube-apiserver/
 ```
 
 Each file corresponds to one API server node's logs.
@@ -39,9 +39,11 @@ Each file corresponds to one API server node's logs.
 
 ## Step 2: Analyze Audit Logs with `kubectl-dev_tool`
 
-Install [`kubectl-dev_tool`](https://github.com/openshift/cluster-debug-tools) if you haven't already. Then, run an analysis command like:
+Install [`kubectl-dev_tool`](https://github.com/openshift/cluster-debug-tools) if you haven't already. Then, find the audit_logs directory obtained by the must-gather, and run an analysis command:
 
 ```bash
+cd must-gather.local.*/quay-io-openshift-release-dev-ocp-v4-0*
+
 oc dev_tool audit -f 'audit_logs/kube-apiserver' \
   --verb=get \
   --resource='*.*' \
@@ -55,7 +57,48 @@ oc dev_tool audit -f 'audit_logs/kube-apiserver' \
 - `--resource='*.*'`: Match all resource types.
 - `--resource='-subjectaccessreviews.*'` & `--resource='-tokenreviews.*'`: Exclude common noisy SAR and token review calls.
 
+> [!Note]
 > **Why filter like this?** The goal is to highlight API usage patterns from workloads and controllers rather than authentication or RBAC-related queries.
+
+#### More examples
+
+```bash
+oc dev_tool audit -f 'audit_logs/kube-apiserver' --by=user -otop
+```
+
+Example output:
+```
+count: 4416909, first: 2025-04-21T02:39:46+10:00, last: 2025-04-23T15:53:31+10:00, duration: 61h13m45.275034s
+955229x              system:serviceaccount:openshift-cluster-version:default
+552672x              system:serviceaccount:openshift-operator-lifecycle-manager:olm-operator-serviceaccount
+220223x              system:serviceaccount:openshift-apiserver:openshift-apiserver-sa
+191054x              system:serviceaccount:openshift-machine-config-operator:machine-config-operator
+135253x              system:node:sre-shared-cluster-rando-master-0
+131153x              system:apiserver
+123468x              system:serviceaccount:openshift-authentication-operator:authentication-operator
+112220x              system:serviceaccount:openshift-apiserver-operator:openshift-apiserver-operator
+98050x               system:kube-controller-manager
+93606x               system:node:sre-shared-cluster-rando-worker-eastus1-v5-rando
+```
+
+```bash
+oc dev_tool audit -f 'audit_logs/kube-apiserver' --by=resource -otop
+```
+
+Example output:
+```
+count: 4416909, first: 2025-04-21T02:39:46+10:00, last: 2025-04-23T15:53:31+10:00, duration: 61h13m45.275034s
+496348x              coordination.k8s.io/leases
+446384x              operators.coreos.com/clusterserviceversions
+373678x              v1/configmaps
+308110x              authorization.k8s.io/v1/subjectaccessreviews
+200818x              v1/secrets
+170067x              rbac.authorization.k8s.io/v1/clusterrolebindings
+168752x              rbac.authorization.k8s.io/rolebindings
+164444x              v1/serviceaccounts
+159990x              rbac.authorization.k8s.io/v1/clusterroles
+138069x              apiextensions.k8s.io/v1/customresourcedefinitions
+```
 
 ---
 
