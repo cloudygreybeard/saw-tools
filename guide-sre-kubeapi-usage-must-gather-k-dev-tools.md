@@ -33,6 +33,7 @@ must-gather.local.*/quay-io-openshift-release-dev-ocp-v4-0*/audit_logs/kube-apis
 
 Each file corresponds to one API server node's logs.
 
+> [!Note]
 > **Why audit logs?** Audit logs provide a timestamped, structured trail of all API requests received by the Kubernetes API server, enabling detailed investigation of what happened, when, and by whom.
 
 ---
@@ -110,13 +111,10 @@ The tool summarizes high-volume users, frequent requests, and possible overuse p
 - **High frequency from a specific `namespace` or `serviceAccount`**: Could be an over-polling app.
 - **Calls without RBAC errors but excessive frequency**: Opportunities for tuning.
 
----
-
-## Bonus Tips
-
-- Combine with Prometheus metrics (e.g., `apiserver_request_total`) to cross-check traffic volume.
-- Use timestamps to correlate with incident timelines.
-- Feed findings into tuning efforts: adjust controller resync periods, optimize watches, or consolidate frequent API calls.
+> [!Tip]
+> - Combine with Prometheus metrics (e.g., `apiserver_request_total`) to cross-check traffic volume.
+> - Use timestamps to correlate with incident timelines.
+> - Feed findings into tuning efforts: adjust controller resync periods, optimize watches, or consolidate frequent API calls.
 
 ---
 
