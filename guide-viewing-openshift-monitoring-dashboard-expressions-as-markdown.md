@@ -87,3 +87,13 @@ oc get configmaps -n openshift-config-managed -l console.openshift.io/dashboard=
 - If no dashboards are returned, verify the label filter and that dashboards are present on your cluster.
 
 ---
+```yaml
+title: "Viewing OpenShift Monitoring Dashboard Expressions as MarkDown"
+authors: [{"name":"cloudygreybeard","role":"SRE"}]
+draft: false
+creationTimestamp: 2025-04-29
+modificationTimestamp: 2025-04-29
+tags: ["Diagnostics","etcd","Forensics","KubeAPI","Kubernetes","Monitoring","Observability","OpenShift","Perf","Tools","Troubleshooting"]
+spdxIdentifiers: ["Apache-2.0"]
+```
+---
