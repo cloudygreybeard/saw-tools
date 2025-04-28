@@ -36,15 +36,22 @@ For more information about OpenShift Monitoring, refer to the [OpenShift Monitor
 The following one-liner outputs a Markdown table listing all dashboard panels and their associated queries:
 
 ```bash
-oc get configmaps -n openshift-config-managed -l console.openshift.io/dashboard=true -o json | jq -r '
-    "| Dashboard | Panel Title | Query | Description |",
-    "|:---------|:------------|:------|:------------|",
-    .items[] |
-    .metadata.name as $NAME |
-    (.data[] | fromjson) as $DASHJSON |
-    $DASHJSON.panels[]? as $panel |
-    $panel.targets[]? as $target |
-    "| \($NAME) | \( ($panel.title // "No Panel Title") ) | \( ($target.expr // "No Query Found") ) | \( ($panel.description // "" ) ) |"
+oc get configmaps -n openshift-config-managed -l console.openshift.io/dashboard=true -o json | jq -Cr '
+  [
+    "| OpenShift Monitoring Dashboard | Panel Title | Query | Description |",
+    "|:---------|:------------|:------|:------------|"
+  ]
+  + (
+    [
+      .items[] |
+      .metadata.name as $NAME |
+      (.data[] | fromjson) as $DASHJSON |
+      $DASHJSON.panels[]? as $panel |
+      $panel.targets[]? as $target |
+      "| \($NAME) | \( ($panel.title // "No Panel Title") ) | \( ($target.expr // "No Query Found") ) | \( ($panel.description // "" ) ) |"
+    ]
+  )
+  | .[]
 '
 ```
 
