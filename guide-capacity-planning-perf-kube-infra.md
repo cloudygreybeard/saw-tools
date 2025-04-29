@@ -131,24 +131,45 @@ These queries provide a foundation for custom dashboard panels and alert rules.
 
 ## References
 
-- [Kubernetes Monitoring Best Practices - Kubernetes.io](https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/)
-- [Scaling and Performance Tuning Kubernetes - Kubernetes.io](https://kubernetes.io/docs/tasks/administer-cluster/cluster-management/#scaling-your-cluster)
-- [Kubernetes Capacity Planning Guide - IBM Cloud Docs](https://cloud.ibm.com/docs/containers?topic=containers-capacity_planning)
-- [Prometheus Querying Concepts - Prometheus.io](https://prometheus.io/docs/prometheus/latest/querying/basics/)
-- [CNCF Whitepaper: Cloud Native Monitoring](https://www.cncf.io/wp-content/uploads/2020/11/CNCF_CloudNativeMonitoring.pdf)
-- [ACM Queue: Monitoring in the Age of Cloud Native](https://queue.acm.org/detail.cfm?id=3568445)
-- [Red Hat OpenShift Monitoring and Metrics Architecture](https://docs.openshift.com/container-platform/latest/monitoring/monitoring-overview.html)
+1. **Kubernetes Patterns: Capacity Planning – CNCF**
+   An exploration of capacity planning patterns in Kubernetes, emphasizing the importance of declaring resource requirements for efficient scheduling and performance.
+   [https://www.cncf.io/blog/2019/10/08/kubernetes-patterns-capacity-planning/](https://www.cncf.io/blog/2019/10/08/kubernetes-patterns-capacity-planning/)
+
+2. **Overprovision Node Capacity for a Cluster – Kubernetes Documentation**
+   Guidance on configuring node overprovisioning in Kubernetes clusters to enhance responsiveness during scaling events.
+   [https://kubernetes.io/docs/tasks/administer-cluster/node-overprovisioning/](https://kubernetes.io/docs/tasks/administer-cluster/node-overprovisioning/)
+
+3. **Capacity Management and Overcommitment Best Practices in Red Hat OpenShift**
+   Best practices for managing capacity and overcommitment in OpenShift, addressing common challenges and solutions.
+   [https://www.redhat.com/en/blog/capacity-management-overcommitment-best-practices-openshift](https://www.redhat.com/en/blog/capacity-management-overcommitment-best-practices-openshift)
+
+4. **What Is Capacity Planning? – IBM**
+   An overview of capacity planning strategies, focusing on aligning production capacity with current and future demands.
+   [https://www.ibm.com/think/topics/capacity-planning](https://www.ibm.com/think/topics/capacity-planning)
+
+5. **Proactive Monitoring Design Patterns for Cloud-Native Applications – ACM Digital Library**
+   Design patterns for proactive monitoring in cloud-native applications, emphasizing the role of capacity planning.
+   [https://dl.acm.org/doi/fullHtml/10.1145/3551902.3551961](https://dl.acm.org/doi/fullHtml/10.1145/3551902.3551961)
 
 ---
 
 ## Suggested Further Reading
 
-- **Monitoring Kubernetes Effectively with Prometheus** — [CNCF Blog](https://www.cncf.io/blog/)
-- **Cluster Capacity Planning Best Practices** — [IBM Kubernetes Service](https://cloud.ibm.com/docs/containers)
-- **Cluster Autoscaler and Resource Management** — [Kubernetes Documentation](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/)
-- **Resource Metrics and Alerting for Kubernetes Clusters** — [Red Hat OpenShift Docs](https://docs.openshift.com/container-platform/latest/monitoring/monitoring-overview.html)
-- **Modern Observability Pipelines for Cloud Native Systems** — [ACM Queue](https://queue.acm.org/)
-- **etcd Performance Tuning Guide** — [etcd Documentation](https://etcd.io/docs/v3.5/tuning/)
+1. **Optimized Kubernetes Cluster Architecture: Considerations and Best Practices – CNCF**
+   Kubernetes cluster architectures with capacity planning considerations.
+   [https://www.cncf.io/blog/2023/06/15/optimized-kubernetes-cluster-architecture-considerations-and-best-practices/](https://www.cncf.io/blog/2023/06/15/optimized-kubernetes-cluster-architecture-considerations-and-best-practices/)
+
+2. **Cost management on Microsoft Azure Red Hat OpenShift – Red Hat**
+   Cost management tools to utilize in Azure while using Azure Red Hat OpenShift.
+   [https://cloud.redhat.com/learning/learn:microsoft-azure-red-hat-openshift-explained/resource/resources:cost-management-microsoft-azure-red-hat-openshift](https://cloud.redhat.com/learning/learn:microsoft-azure-red-hat-openshift-explained/resource/resources:cost-management-microsoft-azure-red-hat-openshift)
+
+3. **Capacity Planning and Deployment – IBM**
+   Effective capacity planning and deployment to ensure efficient operations.
+   [https://www.ibm.com/support/pages/capacity-planning-and-deployment](https://www.ibm.com/support/pages/capacity-planning-and-deployment)
+
+4. **Resource Management for Pods and Containers – Kubernetes Documentation**
+   Managing resource requests and limits for pods and containers in Kubernetes.
+   [https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
 
 ---
 ```yaml
