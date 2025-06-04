@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+#
+# Process Azure ARO versions from various locations in parallel using GNU Parallel.
+# This script fetches ARO versions, formats them as JSON, and aggregates the results.
+
+# Date: 2025-06-03
+# Author: cloudygreybeard
+# Commentary and code review: Google Gemini
+
+set -euo pipefail
+
+# --- Configuration Variables ---
+
+# List of Azure locations to query.
+# Using a readonly array for static values.
+readonly AZURE_LOCATIONS=(
+    $(az account list-locations --include-extended-locations | jq -r '[.[].name]|sort[]')
+)
+
+# AZURE_LOCATIONS holds an array of all available Azure locations, irrespective of
+# ARO availability (approx 100 at the time of writing)
+#
+# Locations in which ARO was available at 2025-05:
+#    "australiacentral" "australiacentral2" "australiaeast" "australiasoutheast"
+#    "brazilsouth" "brazilsoutheast" "canadacentral" "canadaeast" "centralindia"
+#    "centralus" "eastasia" "eastus" "eastus2" "francecentral" "germanywestcentral"
+#    "italynorth" "japaneast" "japanwest" "koreacentral" "northcentralus" "northeurope"
+#    "norwayeast" "norwaywest" "qatarcentral" "southafricanorth" "southcentralus"
+#    "southeastasia" "southindia" "spaincentral" "swedencentral" "switzerlandnorth"
+#    "switzerlandwest" "uaenorth" "uksouth" "ukwest" "westcentralus" "westeurope"
+#    "westus" "westus2" "westus3"
+
+# Number of concurrent processes for GNU Parallel.
+# Adjust this based on your system's resources and API rate limits.
+readonly N_CONCURRENT_JOBS="32"
+
+# --- Functions ---
+
+# get_aro_version_json()
+# Fetches Azure Red Hat OpenShift (ARO) versions for a given location and formats the output as a JSON object.
+# Arguments:
+#   $1 - The Azure location (e.g., "eastus").
+# Outputs:
+#   A JSON object to standard output, e.g.:
+#   {"name": "eastus", "versions": ["4.10", "4.11", ...]}
+#   If 'az aro get-versions' fails or returns empty/invalid JSON, 'versions' will be an empty array.
+get_aro_version_json() {
+    local -r AZ_LOCATION="$1"
+    local aro_vers_raw=""
+    local aro_vers_parsed="[]" # Default to an empty JSON array
+
+    # Fetch ARO versions, redirecting stderr to /dev/null to suppress non-critical errors.
+    # We use command substitution to capture output, ensuring it's not printed prematurely.
+    if ! aro_vers_raw="$(az aro get-versions -l "${AZ_LOCATION}" 2>/dev/null)"; then
+        # Handle cases where the 'az' command itself fails (e.g., connectivity, permissions).
+        # We still proceed with the default empty array.
+        echo "Warning: 'az aro get-versions' command failed for ${AZ_LOCATION}. Defaulting to empty versions." >&2
+    fi
+
+    # Check if raw output is empty or "null" (which jq might return for no input).
+    if [[ -n "${aro_vers_raw}" ]] && [[ "${aro_vers_raw}" != "null" ]]; then
+        # Validate and compact the JSON output from the 'az' command.
+        # If jq fails to parse, it means the output was not valid JSON.
+        if ! aro_vers_parsed="$(echo "${aro_vers_raw}" | jq -c . 2>/dev/null)"; then
+            echo "Warning: Invalid JSON from 'az aro get-versions' for ${AZ_LOCATION}. Defaulting to empty versions." >&2
+            aro_vers_parsed="[]" # Revert to empty array if parsing failed
+        fi
+    fi
+
+    # Construct the final JSON object for this location.
+    # `jq -n` starts with a null input.
+    # `--arg AZ_LOCATION` passes the location as a string.
+    # `--argjson ARO_VERS` passes the parsed versions as a JSON array/object.
+    jq -n \
+        --arg AZ_LOCATION "${AZ_LOCATION}" \
+        --argjson ARO_VERS "${aro_vers_parsed}" \
+        '{"name": $AZ_LOCATION, "versions": $ARO_VERS}'
+}
+
+# Export the function so GNU Parallel can find and execute it in subshells.
+export -f get_aro_version_json
+
+# --- Main Execution ---
+
+echo "Starting concurrent API calls with GNU Parallel..." >&2
+
+# Execute the 'get_aro_version_json' function in parallel for each location.
+#
+# GNU Parallel options:
+#   --line-buffer (-lb): Ensures each job's output is buffered line-by-line before being sent to stdout.
+#                        This is critical for 'jq -s' which expects one JSON object per line.
+#   -j ${N_CONCURRENT_JOBS}: Sets the maximum number of jobs to run concurrently.
+#   ::: "${AZURE_LOCATIONS[@]}": Provides the input arguments to the function, one for each element in the array.
+
+parallel --line-buffer -j "${N_CONCURRENT_JOBS}" get_aro_version_json ::: "${AZURE_LOCATIONS[@]}" | \
+    # Pipe all the individual JSON objects (one per line) to jq.
+    # `jq -s`: Slurps all inputs into a single JSON array.
+    # `'{"locations": .}'`: Wraps the array of location objects into a final
+    #                        JSON object with a "locations" key.
+    jq -s '{"locations": .}' | \
+    case "${1:-}" in
+            --summary|-s ) jq -r '[.locations[]|{"name": .name, "aroVersionCount": (.versions | length)}]|sort_by(.aroVersionCount)';;
+	    --yaml|-y    ) yq -Poy;;
+	    ""           ) jq .;;
+	    *            ) echo "Do not know $1" >&2; exit 1;;
+    esac
+
+# --- End ---
+
+: <<...Citations
+# @software{tange_2025_15484911,
+      author       = {Tange, Ole},
+      title        = {GNU Parallel 20250522 ('Leif Tange')},
+      month        = May,
+      year         = 2025,
+      note         = {{GNU Parallel is a general parallelizer to run
+                       multiple serial command line programs in parallel
+                       without changing them.}},
+      publisher    = {Zenodo},
+      doi          = {10.5281/zenodo.15484911},
+      url          = {https://doi.org/10.5281/zenodo.15484911}
+}
+...Citations
