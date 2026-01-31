@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+#
+# List Azure Red Hat OpenShift clusters older than a specified number of days for housekeeping.
+#
+# Date: 2026-01-31
+# Author: cloudygreybeard
+# SPDX-License-Identifier: Apache-2.0
+
+set -euo pipefail
+
+# --------------------
+# Defaults
+# --------------------
+opt_olderThanDays=14
+opt_exclude=""
+opt_output="table"
+az_config_dirs=()
+
+usage() {
+  cat <<EOF
+Usage: az-aro-housekeeping [options]
+
+Options:
+  -d, --olderThanDays N        Only show clusters older than N days (default: 14)
+  -e, --exclude REGEX         Exclude cluster names matching REGEX
+  -c, --az-config-dir DIR     Azure config directory (may be specified multiple times)
+  -o, --output FORMAT         Output format: table|tsv|csv|json (default: table)
+  -h, --help                  Show this help
+EOF
+}
+
+# --------------------
+# Argument parsing
+# --------------------
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -d|--olderThanDays)
+      opt_olderThanDays="$2"
+      shift 2
+      ;;
+    -e|--exclude)
+      opt_exclude="$2"
+      shift 2
+      ;;
+    -c|--az-config-dir)
+      az_config_dirs+=("$2")
+      shift 2
+      ;;
+    -o|--output)
+      opt_output="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+# --------------------
+# Validation
+# --------------------
+if ! [[ "$opt_olderThanDays" =~ ^[0-9]+$ ]]; then
+  echo "Error: olderThanDays must be a positive integer" >&2
+  exit 1
+fi
+
+case "$opt_output" in
+  table|tsv|csv|json) ;;
+  *)
+    echo "Error: output must be one of: table, tsv, csv, json" >&2
+    exit 1
+    ;;
+esac
+
+# --------------------
+# jq programs
+# --------------------
+
+# Emit one JSON object per row
+jq_json_rows='
+  (now - $olderThanDays * 86400 | strftime("%Y-%m-%d")) as $cutoff
+  |
+  map(.date = (.systemData.createdAt | split("T")[0]))
+  | map(
+      select(.date <= $cutoff)
+      | select(
+          ($ARGS.named.exclude | length == 0)
+          or (.name | test($ARGS.named.exclude) | not)
+        )
+    )
+  | sort_by(.date)
+  | .[]
+  | {
+      subscription: $azAccountName,
+      date: .date,
+      user: .systemData.createdBy,
+      resourceGroup: .resourceGroup,
+      name: .name
+    }
+'
+
+# --------------------
+# Data collection
+# --------------------
+collect_rows() {
+  local az_account_name
+  az_account_name="$(az account show -o tsv --query name)"
+
+  az aro list |
+  jq -c \
+    --arg azAccountName "$az_account_name" \
+    --arg exclude "$opt_exclude" \
+    --argjson olderThanDays "$opt_olderThanDays" \
+    "$jq_json_rows"
+}
+
+rows=$(
+  if [[ ${#az_config_dirs[@]} -gt 0 ]]; then
+    for dir in "${az_config_dirs[@]}"; do
+      export AZURE_CONFIG_DIR="$dir"
+      collect_rows
+    done
+  else
+    collect_rows
+  fi
+)
+
+# --------------------
+# Output formatting
+# --------------------
+case "$opt_output" in
+  json)
+    echo "$rows" | jq -s .
+    ;;
+  csv)
+    echo "$rows" | jq -r '
+      ["SUBSCRIPTION","DATE","USER","RG","NAME"],
+      (.[] | [.subscription,.date,.user,.resourceGroup,.name])
+      | @csv
+    '
+    ;;
+  tsv)
+    echo -e "SUBSCRIPTION\tDATE\tUSER\tRG\tNAME"
+    echo "$rows" | jq -r '
+      [.subscription,.date,.user,.resourceGroup,.name]
+      | @tsv
+    '
+    ;;
+  table)
+    {
+      echo -e "SUBSCRIPTION\tDATE\tUSER\tRG\tNAME"
+      echo "$rows" | jq -r '
+        [.subscription,.date,.user,.resourceGroup,.name]
+        | @tsv
+      '
+    } | column -ts$'\t'
+    ;;
+esac
