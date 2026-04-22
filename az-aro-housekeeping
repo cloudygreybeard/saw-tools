@@ -86,7 +86,8 @@ esac
 jq_json_rows='
   (now - $olderThanDays * 86400 | strftime("%Y-%m-%d")) as $cutoff
   |
-  map(.date = (.systemData.createdAt | split("T")[0]))
+  map(select(.systemData.createdAt))
+  | map(.date = (.systemData.createdAt | split("T")[0]))
   | map(
       select(.date <= $cutoff)
       | select(
